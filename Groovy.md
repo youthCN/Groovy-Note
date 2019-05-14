@@ -67,15 +67,15 @@ this.gradle.addShutdownHook {}(){}
 ```
 
 ###二.Project核心api
-1. project概念
+**1. project概念**
 	包含一个build.gradle的，一般认为是一个project；所以在一个Android项目中，project是一个gradle中的project，一个model也是一个project。
 
-2. api组成
+**2. api组成**
 	![](/pic/projectApi.png)
 
 在Project中的build.gradle中执行：
 
-(1). Project(工程)相关Api
+**2.1 Project(工程)相关Api**
 ```
 printProjects()
 
@@ -134,7 +134,7 @@ subprojects { Project project ->
 }
 ```
 
-(2). Properties(属性)相关Api
+**2.2 Properties(属性)相关Api**
 
 属性是指Project类中的字段, 自带属性有如下字段:
 ```
@@ -165,7 +165,7 @@ public interface Project extends Comparable<Project>, ExtensionAware, PluginAwar
 
 自带属性往往不能满足需求,我们可以扩展属性,扩展属性的方式有如下3种.
 
-1. 自定义变量
+**2.2.1 自定义变量**
 ```
 def mCompileSdkVersion = 27
 android {
@@ -187,7 +187,7 @@ android {
 }
 ```
 
-2. 通过扩展块定义扩展属性
+**2.2.2 通过扩展块定义扩展属性**
 ```
 ext{
     mCompileSdkVersion = 27
@@ -210,4 +210,99 @@ android {
     }
 }
 ```
-使用这种方式,可以把扩展属性块放在父Project中,这样定义在
+使用这种方式,可以把扩展属性块放在父Project中,这样定义在父Project中的变量,可以在子工程中使用.
+父工程:
+```
+ext{
+    mCompileSdkVersion = 27
+}
+```
+子工程
+```
+android {
+//实际上,直接使用 this.mCompileSdkVersion 也是可以的,这个会被子工程继承
+    compileSdkVersion this.rootProject.mCompileSdkVersion
+    defaultConfig {
+        applicationId "gcytest.apt_test"
+        minSdkVersion 21
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+```
+* 通用方式
+  定义一个配置文件config.gradle
+```
+ext{
+    androidConfig = [mCompileSdkVersion:27]//定义一个map映射
+//    mCompileSdkVersion = 27
+}
+```
+  在父工程中引入配置
+```
+apply from:file('config.gradle')
+```
+ 在子工程中可以直接使用这种配置
+```
+android {
+    compileSdkVersion this.androidConfig.mCompileSdkVersion
+    ...
+}
+```
+**2.2.3 在gradle.properties配置文件中自定义属性**
+例如动态依赖一个工程:
+```
+isLoadTest = false
+```
+在setting.gradle中
+```
+if(hasProperty('isLoadTest')?isLoadTest.toBoolean():false){
+    include ':Test'
+}
+```
+
+**3.文件属性Api**
+
+**3.1 文件目录api**
+在父工程中的gradle中执行:
+```
+println 'the root file path is:'+getRootDir().absolutePath
+println 'the build file path is:'+getBuildDir()
+println 'the project file path is:'+getProjectDir()
+```
+结果:
+```
+the root file path is:E:\MyCode\androidcode\APT_Test
+the build file path is:E:\MyCode\androidcode\APT_Test\build
+the project file path is:E:\MyCode\androidcode\APT_Test
+
+```
+3.2文件定位api
+ File file(Object path) 方法
+该方法和Groovy中 new File 不同,这个是gradle中的一个方法,这个方法相对于当前工程目录
+```
+println getContent('app/build.gradle')
+def getContent(String path){
+    try {
+        def file = file(path)
+        return file.text
+    }catch (GradleException e){
+        println 'file is not find'
+    }
+    return null
+}
+```
+其他方法
+ConfigurableFileCollection files(Object... paths);
+3.3文件拷贝
+
+
+### 三. Task
