@@ -303,6 +303,75 @@ def getContent(String path){
 其他方法
 ConfigurableFileCollection files(Object... paths);
 3.3文件拷贝
+WorkResult copy(Closure closure);
+```
+copy{
+    from file('gradle/wrapper/')
+    into getRootProject().getBuildDir().path+"/testwrapper/"
+    exclude{//排除某文件,通过键值对 xxx:xxx
+        
+    }
+    rename{//重命名
+
+    }
+}
+```
+文件树
+```
+//将build/out/apk目录映射成一个文件树
+fileTree('build/out/apk'){
+    FileTree fileTree->
+        fileTree.visit {FileTreeElement element->
+            println 'the file name is :'+element.file.name
+            copy{
+                from element.file
+                into getRootProject().getBuildDir()/path+'/test/'
+            }
+        }
+}
+```
+
+**3.2 依赖相关api**
+
+```
+buildscript { ScriptHandler scriptHandler->
+        //配置工程仓库 scriptHandler可以删除,属于delegate(区别this,owner)
+        scriptHandler.jcenter()
+        scriptHandler.mavenCentral()
+        scriptHandler.mavenLocal()
+        scriptHandler.ivy{}
+        scriptHandler.maven{
+            name 'persional'
+            url 'http://localhost:8081:/repositories'
+            credentials{//配置验证信息
+                username='admin'
+                password='admin123'
+            }
+        }
+    dependencies {//build.gradle中,也有dependencies方法,注意区别当前在buildscript中的dependencies
+        //当前的dependencies表示gradle所使用到的插件
+        //其他module中的build.gradle表示依赖某个第三方库
+        classpath 'com.android.tools.build:gradle:3.2.1'
+    }
+}
+```
+应用程序添加第三方依赖
+
+![](pic/depend.PNG)
+
+解决冲突:
+![](pic/error_conflict.png)
+传递依赖:
+
+![](pic/chuandi.png)
+此时禁止工程A依赖工程C
+
+![](pic/chuandi_conflict.png)
+
+使用provided,在编译时通过,打包不打进去
+```
+ provided 'junit:junit:4.12'
+```
 
 
 ### 三. Task
